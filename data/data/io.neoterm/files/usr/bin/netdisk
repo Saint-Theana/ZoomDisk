@@ -118,6 +118,7 @@ stat(){
 $clear
 display midle - - 
 display midle "Terminal BaiduNetdisk Straight Link Generator" " "
+display midle "https://github.com/Saint-Theana" " "
 display midle "PATH:$1" " "
 display midle "PAGE:$page_now/$total_page" " "
 display midle - - 

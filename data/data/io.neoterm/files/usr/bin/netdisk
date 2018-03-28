@@ -1,0 +1,313 @@
+#!/data/data/io.neoterm/files/usr/bin/sh
+busybox=$(which busybox)
+if [[ $(which busybox) == "" ]];then echo "busybox not found.";exit 0;fi
+if [[ "$(which baidupcs)" == "" ]];then echo "baidupcs not found.";exit 0;fi
+if [[ $1 != settings ]];then
+if [[ "$(baidupcs who)" == "You are not logon or your session is time out. You can login by 'login' command." ]];then echo "baidupcs not logined,use command 'baidupcs login' to login.";exit 0;fi;fi
+if [[ ! -e $HOME/.pcs/netdisk.conf ]];then
+mkdir $HOME/.pcs >/dev/null 2>&1
+echo -e "proxy_ip="116.11.254.37:80"\nenable_http="false"\nrpc1=http://127.0.0.1:6800/jsonrpc\nrpc1_name=本机\nrpc2=\nrpc2_name=\nrpc3=\nrpc3_name=\nrpc4=\nrpc4_name=">$HOME/.pcs/netdisk.conf;fi
+if [[ -e $HOME/.pcs/netdisk.conf ]];then
+source $HOME/.pcs/netdisk.conf;fi
+###########命令设置########
+clear="${busybox} clear"
+grep="${busybox} grep"
+egrep="${busybox} egrep"
+cat="${busybox} cat"
+cut="${busybox} cut"
+ps="${busybox} ps"
+sed="${busybox} sed"
+od="${busybox} od"
+seq="${busybox} seq"
+ls="${busybox} ls"
+tr="${busybox} tr"
+rm="${busybox} rm"
+awk="${busybox} awk"
+
+
+write_conf(){
+echo "`$cat $HOME/.pcs/netdisk.conf |$sed "/$1=/c $1=$2"`" >$HOME/.pcs/netdisk.conf 
+}
+purple_block(){
+echo -e "\033[45m$@\033[0m"
+}
+blue_block(){
+echo -e "\033[46m$@\033[0m"
+}
+green_block(){
+echo -e "\033[42m$@\033[0m"
+}
+red_block(){
+echo -e "\033[41m$@\033[0m"
+}
+golden_word(){
+echo -e "\033[33m$@\033[0m"
+}
+red_word(){
+echo -e "\033[31m$@\033[0m"
+}
+green_word(){
+echo -e "\033[32m$@\033[0m"
+}
+purple_word(){
+echo -e "\033[35m$@\033[0m"
+}
+blue_word(){
+echo -e "\033[36m$@\033[0m"
+}
+
+produce(){
+product=$($busybox printf "%*s" "$1" "$2")
+echo "${product// /"$2"}"
+}
+display(){
+if [[ $term_width_set == "" ]];then
+term_width="$($busybox stty size|$cut -d" " -f2)"
+else
+term_width="$term_width_set"
+fi
+if [[ $1 == "midle" ]];then
+if [[ "`echo "$2"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'`" != "" ]];then 
+chinese="`echo "$2"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'|tr -d '\n'|tr -d ' '`"
+chinese_length=${#chinese}
+((chinese_length=chinese_length * 2))
+((english_length=${#2} - chinese_length / 2))
+((total_width=chinese_length + english_length))
+else
+total_width=${#2}
+fi
+((head_width=(term_width - total_width) / 2))
+((end_width=(term_width - total_width) - head_width))
+if [[ $5 == onn ]];then
+((head_width=head_width - 2))
+elif [[ $5 == on ]];then
+((head_width=head_width - 1));fi
+head="`produce "$head_width" "$3"`">/dev/null 2>&1
+end="`produce "$end_width" "$3"`">/dev/null 2>&1
+
+if [[ $4 == "" ]];then
+echo "$6$head$2$end"
+else
+$4 "$6$head$2$end"
+fi
+fi
+if [[ $1 == "side" ]];then
+total_word="$2$3"
+if [[ "`echo "$total_word"|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'`" != "" ]];then 
+chinese="`echo "$total_word"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'|$tr -d '\n'|$tr -d ' '`"
+((chinese_length=${#chinese} * 2))
+((english_length=${#total_word} - chinese_length / 2))
+((total_width=chinese_length + english_length))
+else
+total_width=${#total_word}
+fi
+if [[ $6 == on ]];then
+((total_width=total_width + 2))
+elif [[ $6 == onn ]];then 
+((total_width=total_width + 3));fi
+((left_width=term_width - total_width));
+space="`produce $left_width " "`"
+if [[ $5 == "" ]];then
+echo "$7$2$space$3"
+else
+$5 "$7$2$space$3"
+fi
+fi
+}
+stat(){
+$clear
+display midle - - 
+display midle "Terminal BaiduNetdisk Straight Link Generator" " "
+display midle "PATH:$1" " "
+display midle "PAGE:$page_now/$total_page" " "
+display midle - - 
+}
+
+
+get_all_file_list(){
+unset list
+unset directory_path
+unset manypage
+unset total_page
+e(){
+list=$(baidupcs list "$1" &) 
+}
+e $1 2>/dev/null
+export directory_path="$1"
+export total_page=$(echo "$list"|grep "Total Page:"|cut -d, -f1|tr -cd '[0-99]')
+manypagefake=$(echo "$list"|grep "PAGE#2")
+if [[ $total_page == "" || $manypagefake == "" ]];then
+export manypage=false
+export total_page=1
+else
+export manypage=true
+export time=1
+while [[ $manypage == "true" ]];do
+export list_page"$time"_start="$(echo "$list"|sed -n "/PAGE#"$time"/=")"
+export list_page"$time"_end="$(($(echo "$list"\nPAGE#$((total_page+1))""|sed -n "/PAGE#$((time +1))/=") - 1))"
+export list_page$time="$(echo "$list"|sed -n "$(eval echo "\$list_page"$time"_start"),$(eval echo "\$list_page"$time"_end")p")"
+((time =time +1))
+if [[ $time -gt $total_page ]];then break;fi
+done;fi
+}
+
+get_file_info(){
+if [[ $1 != "" ]];then
+export page_now=$1
+else export page_now=1;fi
+if [[ $manypage == false ]];then
+export list_page_now=$(echo "$list"|grep '/')
+else export list_page_now=$(eval echo \"\$list_page$1\"|grep '/');fi
+export file_number_now=$(echo "$list_page_now"|sed -n '$=')
+export time=1
+while [[ $file_number_now != ""  ]];do
+export file"$time"_now="$(echo "$list_page_now"|sed -n "$time"p)"
+if [[ $(eval echo "\$file"$time"_now"|cut -d" " -f1) == d ]];then
+export file"$time"_type_now=directory
+else export file"$time"_type_now=file;fi
+export file"$time"_name="$(eval echo "\$file"$time"_now"|sed -e 's/\(.*\)\///')"
+((time =time +1))
+if [[ $time -gt $file_number_now ]];then break;fi
+done
+}
+
+check_rpc_connection(){
+connection="$(curl -s -m 2 "$1" -d '{"jsonrpc": "2.0","id":-666755676,"method":"aria2.getVersion","params":[]}')"
+if [[ "$(echo "$connection"|grep version)" != "" ]];then
+rpc_connection=true
+else rpc_connection=false;fi
+}
+
+
+add_misson(){
+if [[ "$enable_http" == false ]];then
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$1" -A "netdisk;7.8.1;Red;android-android;4.3" -b /sdcard/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
+else
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$1" -A "netdisk;7.8.1;Red;android-android;4.3" -b /sdcard/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
+result=$(curl "$2" -s -d "{\"jsonrpc\": \"2.0\",\"id\":853416378,\"method\":\"aria2.addUri\",\"params\":[["$geted_url"],{}]}")
+if [[ $(echo "$result"|grep error) == "" && $(echo "$result"|grep result) != "" ]];then
+display midle succeed -
+else display midle failed -;fi
+}
+
+get_file_link(){
+if [[ $rpc1 == "" && $rpc2 == "" && $rpc3 == "" && $rpc4 == "" ]];then
+display midle "you do not have any rpc address" -
+else
+display midle "choose a rpc to add mission" -
+export time=1
+export rpc_number=1
+while true;do
+if [[ "$(eval echo "\$rpc$time")" != "" && "$(eval echo "\$rpc"$time"_name")" != "" ]];then
+check_rpc_connection "$(eval echo \$rpc$time)"
+if [[ "$rpc_connection" != false ]];then
+export rpc"$time"_position=$number
+display side "$rpc_number $(eval echo \$rpc"$time"_name)" "$(eval echo \$rpc$time)  online" " " green_word
+else display side "$rpc_number $(eval echo \$rpc"$time"_name)" "$(eval echo \$rpc$time)  offline" " " blue_word;fi
+export given_rpc"$rpc_number"=$(eval echo "\$rpc$rpc_number")
+((rpc_number = rpc_number + 1));fi
+((time=time+1))
+if [[ $time -gt 4 ]];then break;fi;done
+read command
+if [[ $command != "" ]];then
+if [[ $(eval echo \$given_rpc$command) != "" ]];then
+add_misson "$1" "$(eval echo \$given_rpc$command)";fi;fi
+fi
+}
+
+
+if [[ $1 != settings ]];then
+
+if [[ $1 == "" ]];then
+path_wanted="/"
+else path_wanted="$1";fi
+if [[ $2 == "" ]];then
+export page_wanted="1"
+else page_wanted="$2";fi
+
+get_all_file_list "$path_wanted"
+if [[ $manypage == true ]];then
+get_file_info "$page_wanted"
+else get_file_info;fi
+stat "$directory_path"
+export time=1
+while [[ $file_number_now != ""  ]];do
+if [[ "$(eval echo "\$file"$time"_type_now")" == directory ]];then
+display side "$time" "$(eval echo \$file"$time"_name)" " " blue_word
+else display side "$time" "$(eval echo \$file"$time"_name)" " " green_word;fi
+((time =time +1))
+if [[ $time -gt $file_number_now ]];then break;fi
+done
+display midle - - 
+display midle "|tips: | u:↑| d:↓| b:←| x:exit | s:settings |" " "
+display midle - - 
+read command
+if [[ $command -gt 0 && $command -le $file_number_now ]];then
+if [[ "$(eval echo \$file"$command"_type_now)" == directory ]];then
+if [[ $directory_path != "/" ]];then
+netdisk "$directory_path/$(eval echo \$file"$command"_name)"
+else netdisk "$directory_path$(eval echo \$file"$command"_name)";fi
+else 
+if [[ $directory_path != "/" ]];then
+get_file_link "$directory_path/$(eval echo \$file"$command"_name)"
+else get_file_link "$directory_path$(eval echo \$file"$command"_name)";fi;netdisk "$directory_path" "$page_now";fi
+elif [[ $command == "d" ]];then
+if [[ $page_now -lt "$total_page" ]];then
+((page_toward = page_now + 1))
+else page_toward=1;fi
+netdisk "$directory_path" "$page_toward"
+elif [[ $command == "u" ]];then
+if [[ $page_now -gt 1 ]];then
+((page_toward = page_now - 1))
+else page_toward=$total_page;fi
+netdisk "$directory_path" "$page_toward"
+elif [[ $command == "b" ]];then
+if [[ $directory_path != "/" ]];then
+directory_toward="$(echo "$directory_path"|sed 's/\(.*\)\//\1\t/;s/\t.*//g')"
+netdisk "$directory_toward"
+else netdisk "$directory_path";fi
+elif [[ $command == "s" ]];then
+netdisk settings
+elif [[ $command == "x" ]];then $clear
+display midle "Exited" -;exit
+else netdisk "$directory_path" "$page_now";fi
+
+else 
+clear
+display midle - -
+display midle settings -
+display midle - -
+display side "1: Proxy_Ip" "$proxy_ip" " "
+display side "2: Enable_Http" "$enable_http" " "
+display side "3: rpc1: $rpc1_name" "$rpc1" " "
+display side "4: rpc2: $rpc2_name" "$rpc2" " "
+display side "5: rpc3: $rpc3_name" "$rpc3" " "
+display side "6: rpc4: $rpc4_name" "$rpc4" " "
+display midle - -
+display midle "|tips: | b:←| x:exit |" " "
+display midle - -
+read command
+if [[ $command == 1 ]];then
+display midle "enter the ip address you wanted" -
+read command
+if [[ $command != "" ]];then
+write_conf proxy_ip "$command";fi;netdisk settings
+elif [[ $command == 2 ]];then
+if [[ $enable_http == false ]];then
+write_conf enable_http true;else write_conf enable_http false;fi;netdisk settings
+elif [[ $command == 3 || $command == 4 || $command == 5 || $command == 6 ]];then
+display midle "enter a name" -
+read rpcname
+display midle "enter rpc address" -
+read rpc
+if [[ "$rpcname" != "" && $rpc != "" ]];then
+write_conf "rpc$((command - 2))" "$rpc"
+write_conf "rpc"$((command - 2))"_name" "$rpcname";fi;netdisk settings
+elif [[ $command == b ]];then
+netdisk
+elif [[ $command == x ]];then
+clear;display midle Exited -;exit
+else netdisk settings;fi
+fi
+
+

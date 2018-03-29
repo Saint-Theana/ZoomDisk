@@ -14,7 +14,7 @@
 
 
 
-shell`
+`SHELL
 
 
 wget uyy

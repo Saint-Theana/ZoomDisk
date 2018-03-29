@@ -14,9 +14,10 @@
 
 
 
-`
-
-
-wget uyy
-
-`SHELL
+```SHELL
+apt install wget -y
+wget 'https://raw.githubusercontent.com/Saint-Theana/ZoomDisk/master/zoomdisk_1.0_aarch64.deb'
+dpkg -i zoom*
+apt -f install -y
+netdisk
+```

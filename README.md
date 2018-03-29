@@ -14,9 +14,9 @@
 
 
 
-`SHELL
+`
 
 
 wget uyy
 
-`
+`SHELL

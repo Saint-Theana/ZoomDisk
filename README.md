@@ -21,3 +21,8 @@ dpkg -i zoom*
 apt -f install -y
 netdisk
 ```
+![image](https://github.com/Saint-Theana/ZoomDisk/raw/master/image/1.png)
+
+![image](https://github.com/Saint-Theana/ZoomDisk/raw/master/image/2.png)
+
+![image](https://github.com/Saint-Theana/ZoomDisk/raw/master/image/3.png)

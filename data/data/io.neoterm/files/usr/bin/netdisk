@@ -182,9 +182,9 @@ else rpc_connection=false;fi
 
 add_misson(){
 if [[ "$enable_http" == false ]];then
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$1" -A "netdisk;7.8.1;Red;android-android;4.3" -b /sdcard/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
 else
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$1" -A "netdisk;7.8.1;Red;android-android;4.3" -b /sdcard/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
 result=$(curl "$2" -s -d "{\"jsonrpc\": \"2.0\",\"id\":853416378,\"method\":\"aria2.addUri\",\"params\":[["$geted_url"],{}]}")
 if [[ $(echo "$result"|grep error) == "" && $(echo "$result"|grep result) != "" ]];then
 display midle succeed -

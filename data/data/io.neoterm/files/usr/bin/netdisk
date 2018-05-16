@@ -292,7 +292,8 @@ if [[ $command == 1 ]];then
 display midle "enter the ip address you wanted" -
 read command
 if [[ $command != "" ]];then
-write_conf proxy_ip "$command";fi;netdisk settings
+write_conf proxy_ip "-x $command";
+else write_conf proxy_ip "";fi;netdisk settings
 elif [[ $command == 2 ]];then
 if [[ $enable_http == false ]];then
 write_conf enable_http true;else write_conf enable_http false;fi;netdisk settings

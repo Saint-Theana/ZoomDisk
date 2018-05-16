@@ -6,7 +6,7 @@ if [[ $1 != settings ]];then
 if [[ "$(baidupcs who)" == "You are not logon or your session is time out. You can login by 'login' command." ]];then echo "baidupcs not logined,use command 'baidupcs login' to login.";exit 0;fi;fi
 if [[ ! -e $HOME/.pcs/netdisk.conf ]];then
 mkdir $HOME/.pcs >/dev/null 2>&1
-echo -e "proxy_ip="116.11.254.37:80"\nenable_http="false"\nrpc1=http://127.0.0.1:6800/jsonrpc\nrpc1_name=本机\nrpc2=\nrpc2_name=\nrpc3=\nrpc3_name=\nrpc4=\nrpc4_name=">$HOME/.pcs/netdisk.conf;fi
+echo -e "proxy_ip=""\nenable_http="false"\nrpc1=http://127.0.0.1:6800/jsonrpc\nrpc1_name=本机\nrpc2=\nrpc2_name=\nrpc3=\nrpc3_name=\nrpc4=\nrpc4_name=">$HOME/.pcs/netdisk.conf;fi
 if [[ -e $HOME/.pcs/netdisk.conf ]];then
 source $HOME/.pcs/netdisk.conf;fi
 ###########命令设置########
@@ -26,7 +26,7 @@ awk="${busybox} awk"
 
 
 write_conf(){
-echo "`$cat $HOME/.pcs/netdisk.conf |$sed "/$1=/c $1=$2"`" >$HOME/.pcs/netdisk.conf 
+echo "`$cat $HOME/.pcs/netdisk.conf |$sed "/$1=/c $1=\\"$2\\""`" >$HOME/.pcs/netdisk.conf 
 }
 purple_block(){
 echo -e "\033[45m$@\033[0m"
@@ -182,9 +182,9 @@ else rpc_connection=false;fi
 
 add_misson(){
 if [[ "$enable_http" == false ]];then
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
 else
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie -x "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
 result=$(curl "$2" -s -d "{\"jsonrpc\": \"2.0\",\"id\":853416378,\"method\":\"aria2.addUri\",\"params\":[["$geted_url"],{}]}")
 if [[ $(echo "$result"|grep error) == "" && $(echo "$result"|grep result) != "" ]];then
 display midle succeed -
@@ -289,10 +289,10 @@ display midle "|tips: | b:←| x:exit |" " "
 display midle - -
 read command
 if [[ $command == 1 ]];then
-display midle "enter the ip address you wanted" -
+display midle "enter the ip address you wanted or enter nothing" -
 read command
 if [[ $command != "" ]];then
-write_conf proxy_ip "-x $command";
+write_conf proxy_ip "-x $command"
 else write_conf proxy_ip "";fi;netdisk settings
 elif [[ $command == 2 ]];then
 if [[ $enable_http == false ]];then

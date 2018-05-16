@@ -16,8 +16,8 @@
 
 ```SHELL
 apt install wget -y
-wget 'https://raw.githubusercontent.com/Saint-Theana/ZoomDisk/master/zoomdisk_1.0_aarch64.deb'
-dpkg -i zoom*
+wget 'https://raw.githubusercontent.com/Saint-Theana/ZoomDisk/master/zoomdisk_1.1_aarch64.deb'
+dpkg -i zoomdisk_1.*_aarch64.deb
 apt -f install -y
 netdisk
 ```

@@ -8,6 +8,8 @@
 
 #支持过滤http只保留https
 
+#支持百度网盘离线下载
+
 #提取直链添加到aria2任务中一气呵成
 
 #使用下面的指令安装:
@@ -16,8 +18,8 @@
 
 ```SHELL
 apt install wget -y
-wget 'https://raw.githubusercontent.com/Saint-Theana/ZoomDisk/master/zoomdisk_1.1_aarch64.deb'
-dpkg -i zoomdisk_1.*_aarch64.deb
+wget 'https://raw.githubusercontent.com/Saint-Theana/ZoomDisk/master/zoomdisk_1.2_aarch64.deb'
+dpkg -i zoomdisk_1.2_aarch64.deb
 apt -f install -y
 netdisk
 ```

@@ -12,6 +12,7 @@ source $HOME/.pcs/netdisk.conf;fi
 ###########命令设置########
 clear="${busybox} clear"
 grep="${busybox} grep"
+head_command="${busybox} head"
 egrep="${busybox} egrep"
 cat="${busybox} cat"
 cut="${busybox} cut"
@@ -59,6 +60,26 @@ echo -e "\033[36m$@\033[0m"
 produce(){
 product=$($busybox printf "%*s" "$1" "$2")
 echo "${product// /"$2"}"
+}
+display_1(){
+value1=$1
+if [[ $term_width_set == "" ]];then
+term_width="$($busybox stty size|$cut -d" " -f2)"
+else
+term_width="$term_width_set"
+fi
+total_word="$1"
+if [[ "`echo "$total_word"|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'`" != "" ]];then 
+chinese="`echo "$total_word"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'|$tr -d '\n'|$tr -d ' '`"
+((chinese_length=${#chinese} * 2))
+((english_length=${#total_word} - chinese_length / 2))
+((total_width=chinese_length + english_length))
+else
+total_width=${#total_word}
+fi
+if [[ $total_width -gt $term_width ]];then
+value1=$(echo "$1"|$head_command -c $((term_width - total_width -3)))...;fi
+$2 "$value1"
 }
 display(){
 if [[ $term_width_set == "" ]];then
@@ -179,6 +200,13 @@ rpc_connection=true
 else rpc_connection=false;fi
 }
 
+remote_download(){
+geted_result="$(curl -s 'http://pan.baidu.com/rest/2.0/services/cloud_dl?devuid=875497020550968&clienttype=1&channel=android_4.3_Red_bd-netdisk_1001551c&version=7.8.1' -b /data/data/io.neoterm/files/home/.pcs/default.cookie -A "netdisk;7.8.1;Red;android-android;4.3" -d "method=add_task&app_id=250528&file_sha1=&save_path=/&source_url="$1"&source_path=&type=0&rate_limit=0&timeout=0&callback=&selected_idx="|$grep '"rapid_download":0')"
+if [[ $geted_result != '' ]];then
+display midle succeed -
+else display midle "unknown failure" -;fi
+}
+
 
 add_misson(){
 if [[ "$enable_http" == false ]];then
@@ -234,13 +262,13 @@ stat "$directory_path"
 export time=1
 while [[ $file_number_now != ""  ]];do
 if [[ "$(eval echo "\$file"$time"_type_now")" == directory ]];then
-display side "$time" "$(eval echo \$file"$time"_name)" " " blue_word
-else display side "$time" "$(eval echo \$file"$time"_name)" " " green_word;fi
+display_1 "$time $(eval echo \$file"$time"_name)"  blue_word
+else display_1 "$time $(eval echo \$file"$time"_name)" green_word;fi
 ((time =time +1))
 if [[ $time -gt $file_number_now ]];then break;fi
 done
 display midle - - 
-display midle "|tips: | u:↑| d:↓| b:←| x:exit | s:settings |" " "
+display midle "|tips: | u:↑| d:↓| b:←| x:exit | s:settings | r:remote_download |" " "
 display midle - - 
 read command
 if [[ $command -gt 0 && $command -le $file_number_now ]];then
@@ -267,6 +295,11 @@ if [[ $directory_path != "/" ]];then
 directory_toward="$(echo "$directory_path"|sed 's/\(.*\)\//\1\t/;s/\t.*//g')"
 netdisk "$directory_toward"
 else netdisk "$directory_path";fi
+elif [[ $command == "r" ]];then
+display midle "enter address/magnet" -
+read address
+if [[ $address != '' ]];then
+remote_download "$address";fi;netdisk "$directory_path" "$page_now"
 elif [[ $command == "s" ]];then
 netdisk settings
 elif [[ $command == "x" ]];then $clear

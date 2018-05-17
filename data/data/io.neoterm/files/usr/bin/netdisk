@@ -69,7 +69,7 @@ else
 term_width="$term_width_set"
 fi
 total_word="$1"
-if [[ "`echo "$total_word"|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'`" != "" ]];then 
+if [[ "`echo "$total_word"|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'|tr -d " "`" != "" ]];then
 chinese="`echo "$total_word"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'|$tr -d '\n'|$tr -d ' '`"
 ((chinese_length=${#chinese} * 2))
 ((english_length=${#total_word} - chinese_length / 2))
@@ -78,7 +78,7 @@ else
 total_width=${#total_word}
 fi
 if [[ $total_width -gt $term_width ]];then
-value1=$(echo "$1"|$head_command -c $((term_width - total_width -3)))...;fi
+value1="$(echo "$1"|$head_command -c $((term_width - 3)))...";fi
 $2 "$value1"
 }
 display(){
@@ -88,7 +88,7 @@ else
 term_width="$term_width_set"
 fi
 if [[ $1 == "midle" ]];then
-if [[ "`echo "$2"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'`" != "" ]];then 
+if [[ "`echo "$2"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'|tr -d " "`" != "" ]];then 
 chinese="`echo "$2"|$tr -d '[a-z]'|$egrep -o [^\x00-\xff]+|$sed 's/[[:punct:]]//g'|tr -d '\n'|tr -d ' '`"
 chinese_length=${#chinese}
 ((chinese_length=chinese_length * 2))
@@ -154,7 +154,7 @@ unset total_page
 e(){
 list=$(baidupcs list "$1" &) 
 }
-e $1 2>/dev/null
+e "$1" 2>/dev/null
 export directory_path="$1"
 export total_page=$(echo "$list"|grep "Total Page:"|cut -d, -f1|tr -cd '[0-99]')
 manypagefake=$(echo "$list"|grep "PAGE#2")
@@ -175,7 +175,7 @@ done;fi
 
 get_file_info(){
 if [[ $1 != "" ]];then
-export page_now=$1
+export page_now="$1"
 else export page_now=1;fi
 if [[ $manypage == false ]];then
 export list_page_now=$(echo "$list"|grep '/')
@@ -188,6 +188,7 @@ if [[ $(eval echo "\$file"$time"_now"|cut -d" " -f1) == d ]];then
 export file"$time"_type_now=directory
 else export file"$time"_type_now=file;fi
 export file"$time"_name="$(eval echo "\$file"$time"_now"|sed -e 's/\(.*\)\///')"
+export file"$time"_size="$(("$(eval echo "\$file"$time"_now"|cut -d" " -f2)" / 1048576 ))M"
 ((time =time +1))
 if [[ $time -gt $file_number_now ]];then break;fi
 done
@@ -207,12 +208,17 @@ display midle succeed -
 else display midle "unknown failure" -;fi
 }
 
+function urlencode() {
+path_encoded="$(curl -s -o /dev/null -w %{url_effective} --get --data-urlencode "$1" "")"
+echo "${path_encoded##/?}"
+}
 
 add_misson(){
+file_path="$(urlencode "$1")"
 if [[ "$enable_http" == false ]];then
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$file_path" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
 else
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path="$1"" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$file_path" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
 result=$(curl "$2" -s -d "{\"jsonrpc\": \"2.0\",\"id\":853416378,\"method\":\"aria2.addUri\",\"params\":[["$geted_url"],{}]}")
 if [[ $(echo "$result"|grep error) == "" && $(echo "$result"|grep result) != "" ]];then
 display midle succeed -
@@ -253,7 +259,6 @@ else path_wanted="$1";fi
 if [[ $2 == "" ]];then
 export page_wanted="1"
 else page_wanted="$2";fi
-
 get_all_file_list "$path_wanted"
 if [[ $manypage == true ]];then
 get_file_info "$page_wanted"
@@ -263,7 +268,7 @@ export time=1
 while [[ $file_number_now != ""  ]];do
 if [[ "$(eval echo "\$file"$time"_type_now")" == directory ]];then
 display_1 "$time $(eval echo \$file"$time"_name)"  blue_word
-else display_1 "$time $(eval echo \$file"$time"_name)" green_word;fi
+else display_1 "$time $(eval echo "\$file"$time"_size") $(eval echo \$file"$time"_name)" green_word;fi
 ((time =time +1))
 if [[ $time -gt $file_number_now ]];then break;fi
 done
@@ -274,12 +279,12 @@ read command
 if [[ $command -gt 0 && $command -le $file_number_now ]];then
 if [[ "$(eval echo \$file"$command"_type_now)" == directory ]];then
 if [[ $directory_path != "/" ]];then
-netdisk "$directory_path/$(eval echo \$file"$command"_name)"
-else netdisk "$directory_path$(eval echo \$file"$command"_name)";fi
+netdisk ""$directory_path/"$(eval echo "\$file"$command"_name")"""
+else netdisk ""$directory_path"$(eval echo "\$file"$command"_name")""";fi
 else 
 if [[ $directory_path != "/" ]];then
-get_file_link "$directory_path/$(eval echo \$file"$command"_name)"
-else get_file_link "$directory_path$(eval echo \$file"$command"_name)";fi;netdisk "$directory_path" "$page_now";fi
+get_file_link """$directory_path"/"$(eval echo "\$file"$command"_name")"""
+else get_file_link """$directory_path""$(eval echo "\$file"$command"_name")""";fi;netdisk "$directory_path" "$page_now";fi
 elif [[ $command == "d" ]];then
 if [[ $page_now -lt "$total_page" ]];then
 ((page_toward = page_now + 1))

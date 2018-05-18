@@ -209,8 +209,8 @@ else display midle "unknown failure" -;fi
 }
 
 function urlencode() {
-path_encoded="$(curl -s -o /dev/null -w %{url_effective} --get --data-urlencode "$1" "")"
-echo "${path_encoded##/?}"
+path_encoded="$(echo "$1" |tr -d '\n' |od -An -tx1|tr ' ' %)"
+echo "$path_encoded"|tr -d "\n"
 }
 
 add_misson(){

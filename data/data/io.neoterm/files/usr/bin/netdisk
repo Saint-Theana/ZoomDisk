@@ -279,12 +279,12 @@ read command
 if [[ $command -gt 0 && $command -le $file_number_now ]];then
 if [[ "$(eval echo \$file"$command"_type_now)" == directory ]];then
 if [[ $directory_path != "/" ]];then
-netdisk ""$directory_path/"$(eval echo "\$file"$command"_name")"""
-else netdisk ""$directory_path"$(eval echo "\$file"$command"_name")""";fi
+netdisk "$directory_path/$(eval echo "\$file"$command"_name")"
+else netdisk "$directory_path$(eval echo "\$file"$command"_name")";fi
 else 
 if [[ $directory_path != "/" ]];then
-get_file_link """$directory_path"/"$(eval echo "\$file"$command"_name")"""
-else get_file_link """$directory_path""$(eval echo "\$file"$command"_name")""";fi;netdisk "$directory_path" "$page_now";fi
+get_file_link "$directory_path/$(eval echo "\$file"$command"_name")"
+else get_file_link "$directory_path$(eval echo "\$file"$command"_name")";fi;netdisk "$directory_path" "$page_now";fi
 elif [[ $command == "d" ]];then
 if [[ $page_now -lt "$total_page" ]];then
 ((page_toward = page_now + 1))

@@ -341,7 +341,7 @@ else rpc_connection=false;fi
 }
 
 remote_download(){
-geted_result="$(curl -s 'http://pan.baidu.com/rest/2.0/services/cloud_dl?devuid=875497020550968&clienttype=1&channel=android_4.3_Red_bd-netdisk_1001551c&version=7.8.1' -b /data/data/io.neoterm/files/home/.pcs/default.cookie -A "netdisk;7.8.1;Red;android-android;4.3" -d "method=add_task&app_id=250528&file_sha1=&save_path=/&source_url="$1"&source_path=&type=0&rate_limit=0&timeout=0&callback=&selected_idx="|$grep '"rapid_download":0')"
+geted_result="$(curl -s 'http://pan.baidu.com/rest/2.0/services/cloud_dl?devuid=875497020550968&clienttype=1&channel=android_4.3_Red_bd-netdisk_1001551c&version=7.8.1' -b $HOME/.netdisk/logined.cookie -A "netdisk;7.8.1;Red;android-android;4.3" -d "method=add_task&app_id=250528&file_sha1=&save_path=/&source_url="$1"&source_path=&type=0&rate_limit=0&timeout=0&callback=&selected_idx="|$grep '"rapid_download":0')"
 if [[ $geted_result != '' ]];then
 display midle succeed -
 else display midle "unknown failure" -;fi

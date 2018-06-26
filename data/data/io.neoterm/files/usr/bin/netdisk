@@ -1,14 +1,13 @@
 #!/data/data/io.neoterm/files/usr/bin/sh
+
 busybox=$(which busybox)
 if [[ $(which busybox) == "" ]];then echo "busybox not found.";exit 0;fi
-if [[ "$(which baidupcs)" == "" ]];then echo "baidupcs not found.";exit 0;fi
-if [[ $1 != settings ]];then
-if [[ "$(baidupcs who)" == "You are not logon or your session is time out. You can login by 'login' command." ]];then echo "baidupcs not logined,use command 'baidupcs login' to login.";exit 0;fi;fi
-if [[ ! -e $HOME/.pcs/netdisk.conf ]];then
-mkdir $HOME/.pcs >/dev/null 2>&1
-echo -e "proxy_ip=""\nenable_http="false"\nrpc1=http://127.0.0.1:6800/jsonrpc\nrpc1_name=本机\nrpc2=\nrpc2_name=\nrpc3=\nrpc3_name=\nrpc4=\nrpc4_name=">$HOME/.pcs/netdisk.conf;fi
-if [[ -e $HOME/.pcs/netdisk.conf ]];then
-source $HOME/.pcs/netdisk.conf;fi
+if [[ "$(which curl)" == "" ]];then echo "curl not found.";exit 0;fi
+if [[ ! -e $HOME/.netdisk/netdisk.conf ]];then
+mkdir $HOME/.netdisk >/dev/null 2>&1
+echo -e "proxy_ip=""\nenable_http="false"\nrpc1=http://127.0.0.1:6800/jsonrpc\nrpc1_name=本机\nrpc1_token=\nrpc2=\nrpc2_name=\nrpc2_token=\nrpc3=\nrpc3_name=\nrpc3_token=\nrpc4=\nrpc4_name=\nrpc4_token=">$HOME/.netdisk/netdisk.conf;fi
+if [[ -e $HOME/.netdisk/netdisk.conf ]];then
+source $HOME/.netdisk/netdisk.conf;fi
 ###########命令设置########
 clear="${busybox} clear"
 grep="${busybox} grep"
@@ -27,7 +26,7 @@ awk="${busybox} awk"
 
 
 write_conf(){
-echo "`$cat $HOME/.pcs/netdisk.conf |$sed "/$1=/c $1=\\"$2\\""`" >$HOME/.pcs/netdisk.conf 
+echo "`$cat $HOME/.netdisk/netdisk.conf |$sed "/$1=/c $1=\\"$2\\""`" >$HOME/.netdisk/netdisk.conf 
 }
 purple_block(){
 echo -e "\033[45m$@\033[0m"
@@ -58,7 +57,7 @@ echo -e "\033[36m$@\033[0m"
 }
 
 produce(){
-product=$($busybox printf "%*s" "$1" "$2")
+local product=$(printf "%*s" "$1" "$2")
 echo "${product// /"$2"}"
 }
 display_1(){
@@ -141,61 +140,201 @@ display midle - -
 display midle "Terminal BaiduNetdisk Straight Link Generator" " "
 display midle "https://github.com/Saint-Theana" " "
 display midle "PATH:$1" " "
-display midle "PAGE:$page_now/$total_page" " "
+display midle "PAGE:$page_now" " "
 display midle - - 
 }
 
+function get_baiduid(){
+curl -s -L https://passport.baidu.com/v2/ -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -c 1.cookie >/dev/null 2>&1
+if [[ -e 1.cookie ]];then
+if [[ "$(cat 1.cookie|grep BAIDUID)" != "" ]];then
+return 0
+else return 1;fi
+else return 1;fi
+}
+
+function get_token(){
+TOKEN="$(curl -s -L "http://passport.baidu.com/v2/api/?getapi&tpl=netdisk&gid=5C9F804-3464-4CB5-BE67-DFB345D651E8&apiver=v3&class=login&logintype=basicLogin&callback=Fuck&traceid=5FB0F701" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -b 1.cookie |tr "," "\n"|grep token|sed 's/token//g'|tr -cd '[0-9a-zA-Z]')"
+if [[ "$TOKEN" != "" ]];then
+return 0
+else return 1;fi
+}
+
+function get_login_history(){
+cookie="$(cat 1.cookie|grep BAIDUID|sed 's/BAIDUID/BAIDUID\n/g'|grep -v BAIDUID|tr -cd '[0-9a-zA-Z:]')"
+check_history_result="$(curl -s -b "BAIDUID=$cookie; HOSUPPORT=1" $HOME/.netdisk/logined.cookie -L  -H "Connection: keep-alive" -H "Referer: http://passport.baidu.com/v2/?login" -H "Accept-Language: zh-CN,en-US;q=0.9" "http://passport.baidu.com/v2/api/?loginhistory&token=$TOKEN&tpl=pp&apiver=v3&loginversion=v4&traceid=5FB0F701&gid=5C9F804-3464-4CB5-BE67-DFB345D651E8&callback=Fuck" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -c 1.cookie)"
+echo "$check_history_result"
+
+
+}
+
+function check_login(){
+check_login_result="$(curl -s -b $HOME/.netdisk/logined.cookie -L "http://passport.baidu.com/v2/api/?logincheck&token=$TOKEN&tt=$(date +%s000)&tpl=pp&apiver=v3&sub_source=leadsetpwd&username=$USERNAME&loginversion=v4&traceid=5FB0F701&callback=Fuck" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -c 1.cookie)"
+echo "$check_login_result"
+CODESTRING="$(echo "$check_login_result"|grep codeString|tr "," "\n"|grep codeString|sed 's/codeString//g;s/data//g'|tr -cd '[0-9A-Za-z]')"
+}
+
+function encrypt_password(){
+
+get_key_result="$(curl -s -L -b $HOME/.netdisk/logined.cookie "http://passport.baidu.com/v2/getpublickey?token=$TOKEN&tpl=pp&apiver=v3&tt=$(date +%s000)&gid=5C9F804-3464-4CB5-BE67-DFB345D651E8&loginversion=v4&traceid=5FB0F701&callback=Fuck" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36")"
+pubkey="$(echo "$get_key_result"|tr "," "\n"|tr -d "\""|grep pubkey|sed 's/pubkey://g')"
+key="$(echo "$get_key_result"|tr "," "\n"|tr -d ":\'\""|grep key|grep -v pubkey|sed 's/key//g')"
+if [[ "$pubkey" != "" && "$key" != "" ]];then
+key_result=1
+echo "$pubkey"|sed 's/\\n/*/g'|tr -d "\\"|tr "*" "\n"|tr -d "\'">./pubkey
+PASSWOR="$(echo "$PASSWORD"|openssl rsautl -encrypt -inkey ./pubkey -pubin|base64|tr -d "\n")"
+else key_result=2;fi
+}
+
+
+function login(){
+login_result="$(curl -s -b $HOME/.netdisk/logined.cookie -L  -H 'Content-Type: application/x-www-form-urlencoded' "http://passport.baidu.com/v2/api/?login&u=https://pan.baidu.com/wap/home/" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -d "staticpage=https://passport.baidu.com/static/passpc-account/html/v3Jump.html&charset=utf-8&token=$TOKEN&tpl=netdisk&subpro=netdisk_web&apiver=v3&codestring=$CODESTRING&safeflg=0&u=http://pan.baidu.com/&isPhone=&quick_user=0&logintype=basicLogin&logLoginType=pc_loginBasic&idc=&loginmerge=true&gid=5C9F804-3464-4CB5-BE67-DFB345D651E8&loginversion=v4&username=$USERNAME&password=$PASSWORD&verifycode=$VERiFYCODE&mem_pass=on&traceid=5FB0F701&rsakey=$key&crypttype=&tt=$(date +%s000)&ppui_logintime=29337&callback=parent.Fuck" -c $HOME/.netdisk/logined.cookie)"
+if [[ "$login_result" != "" ]];then
+if [[ "$(echo "$login_result"|grep err_no=0)" != "" ]];then
+result=0
+elif [[ "$(echo "$login_result"|grep err_no=257)" != "" ]];then
+CODESTRING="$(echo "$login_result"|grep codeString=|tr "&" "\n"|grep codeString=|sed 's/codeString=//g')"
+result=1
+elif [[ "$(echo "$login_result"|grep err_no=6)" != "" ]];then
+CODESTRING="$(echo "$login_result"|grep codeString=|tr "&" "\n"|grep codeString=|sed 's/codeString=//g')"
+result=1
+elif [[ "$(echo "$login_result"|grep err_no=120021)" != "" || "$(echo "$login_result"|grep err_no=400031)" != "" ]];then
+AUTHTOKEN="$(echo "$login_result"|grep authtoken=|tr "&" "\n"|grep authtoken=|sed 's/authtoken=//g')"
+LTOKEN="$(echo "$login_result"|grep ltoken=|tr "&" "\n"|grep ltoken=|sed 's/ltoken=//g')"
+LSTR="$(echo "$login_result"|grep lstr=|tr "&" "\n"|grep lstr=|sed 's/lstr=//g')"
+result=2
+else result=3;fi
+else result=3;fi
+
+}
+
+function get_capcha(){
+curl -L "https://passport.baidu.com/cgi-bin/genimage?$CODESTRING" -A "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" -b $HOME/.netdisk/logined.cookie >/sdcard/1.gif
+}
+
+function get_check_method(){
+check_result="$(curl -s -b $HOME/.netdisk/logined.cookie -L "http://passport.baidu.com/v2/sapi/authwidgetverify?authtoken=$AUTHTOKEN&type=&jsonp=1&apiver=v3&verifychannel=&action=getapi&vcode=$VCODE&questionAndAnswer=&tt=$(date +%s000)&needsid=&rsakey=$key&countrycode=&subpro=netdisk_web&traceid=5FB0F701&callback=Fuck" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36")"
+echo "$check_result"
+if [[ "$check_result" != "" ]];then
+mobile="$(echo "$check_result"|tr "," "\n"| grep mobile|grep -v verifymobile|tr -cd "[0-9*]")"
+email="$(echo "$check_result"|tr "," "\n"|grep email|grep -v original_email|sed 's/email//g'| tr -cd "[a-zA-Z0-9*.@]")"
+if [[ "$mobile" != "" && "$email" == "" ]];then
+method=1
+elif [[ "$mobile" == "" && "$email" != "" ]];then
+method=2
+elif [[ "$mobile" != "" && "$email" != "" ]];then
+method=3
+else method=4;fi
+else method=4;fi
+}
+
+function send_check_code(){
+if [[ $1 == mobile ]];then
+TYPE=mobile
+elif [[ $1 == email ]];then
+TYPE=email;fi
+send_result="$(curl -s -b $HOME/.netdisk/logined.cookie -L "http://passport.baidu.com/v2/sapi/authwidgetverify?authtoken=$AUTHTOKEN&type=$TYPE&jsonp=1&apiver=v3&verifychannel=&action=send&vcode=&questionAndAnswer=&needsid=&rsakey=&countrycode=&subpro=&u=https%3A%2F%2Fpassport.baidu.com%2F&lstr=$LSTR&tt=$(date +%s000)&ltoken=$LTOKEN&tpl=pp&traceid=5FB0F701&callback=Fuck" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36")"
+if [[ "$send_result" != "" ]];then
+if [[ "$(echo "$send_result"|grep 110000)" != "" ]];then
+code_send_result=1
+else code_send_result=2;fi
+else code_send_result=2;fi
+}
+
+function check_check_code(){
+VCODE=$1
+check_result="$(curl -s -b $HOME/.netdisk/logined.cookie -L -H "Connection: keep-alive" -H "Referer: http://passport.baidu.com/v2/" "http://passport.baidu.com/v2/sapi/authwidgetverify?authtoken=$AUTHTOKEN&type=$TYPE&jsonp=1&apiver=v3&verifychannel=&action=check&vcode=$VCODE&questionAndAnswer=&needsid=&rsakey=&countrycode=&subpro=&u=https%3A%2F%2Fpassport.baidu.com%2F&lstr=$LSTR&ltoken=$LTOKEN&tt=$(date +%s000)&tpl=pp&secret=&traceid=5FB0F701&callback=Fuck" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -c 1.cookie)" 
+if [[ "$check_result" != "" ]];then
+if [[ "$(echo "$check_result"|grep 110000)" != "" ]];then
+TRACEID="$(echo "$check_result"|tr "," "\n"|grep traceid|sed 's/traceid//g'| tr -cd "[a-zA-Z0-99]")"
+code_check_result=1
+else code_check_result=2;fi
+else code_check_result=2;fi
+}
+
+function login_after_check(){
+last_login_result="$(curl -s -b $HOME/.netdisk/logined.cookie -L -H "Connection: keep-alive"  -H 'Content-Type: application/x-www-form-urlencoded' -H "Referer: http://passport.baidu.com/v2/" "https://passport.baidu.com/v2/?loginproxy&u=https://pan.baidu.com/&tpl=pp&ltoken=$LTOKEN&lstr=$LSTR&traceid=&apiver=v3&tt=$(date +%s000)&traceid=5FB0F701" -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -c 1.cookie)" 
+}
+
+
+function start_login(){
+login
+if [[ "$result" == 0 ]];then
+echo 'Login successful'
+elif [[ "$result" == 1 ]];then
+echo -e -n "Captcha check required\nVisit\n\nhttps://passport.baidu.com/cgi-bin/genimage?$CODESTRING\n\nIn your browser to read captcha\n\nCaptcha:"
+read VERiFYCODE
+if [[ "$VERiFYCODE" != "" ]];then start_login
+else echo "Login gave up";fi
+elif [[ "$result" == 2 ]];then
+get_check_method
+echo "Identity check required"
+if [[ $method == 1 ]];then
+echo "Enter 1 to confirm to require message check from $mobile"
+elif [[ $method == 2 ]];then
+echo "Enter 1 to confirm to require message check from $email"
+elif [[ $method == 3 ]];then
+echo "Enter 1/2 to confirm to require message check from $mobile/$email";fi
+read command
+if [[ $command == 1 ]];then
+if [[ $method == 1 ]];then
+send_check_code mobile
+elif [[ $method == 2 ]];then
+send_check_code email
+elif [[ $method == 3 ]];then
+send_check_code mobile
+else echo "Unknown failure";fi
+elif [[ $command == 2 ]];then
+if [[ $method == 3 ]];then
+send_check_code email
+else echo "Unknown failure";fi
+else echo "Login gave up";fi
+if [[ $code_send_result == 1 ]];then
+echo "Enter the verify code you received from your phone/email"
+read command
+if [[ $command != "" ]];then
+check_check_code $command
+else echo "Login gave up";fi;fi
+if [[ "$code_check_result" == 1 ]];then
+login_after_check
+echo "$last_login_result";fi
+fi
+
+}
 
 get_all_file_list(){
-unset list
-unset directory_path
-unset manypage
-unset total_page
-e(){
-list=$(baidupcs list "$1" &) 
-}
-e "$1" 2>/dev/null
+encoded_path="$(urlencode "$1")"
+unset page_unexist
+unset unlogined
+export page_last="$page_now"
 export directory_path="$1"
-export total_page=$(echo "$list"|grep "Total Page:"|cut -d, -f1|tr -cd '[0-99]')
-manypagefake=$(echo "$list"|grep "PAGE#2")
-if [[ $total_page == "" || $manypagefake == "" ]];then
-export manypage=false
-export total_page=1
-else
-export manypage=true
-export time=1
-while [[ $manypage == "true" ]];do
-export list_page"$time"_start="$(echo "$list"|sed -n "/PAGE#"$time"/=")"
-export list_page"$time"_end="$(($(echo "$list"\nPAGE#$((total_page+1))""|sed -n "/PAGE#$((time +1))/=") - 1))"
-export list_page$time="$(echo "$list"|sed -n "$(eval echo "\$list_page"$time"_start"),$(eval echo "\$list_page"$time"_end")p")"
-((time =time +1))
-if [[ $time -gt $total_page ]];then break;fi
-done;fi
+export page_now="$2"
+original_all_file_message="$(echo -e "$(curl -s -b $HOME/.netdisk/logined.cookie -A "Mozilla/5.0 (Linux; U; Android 7.1.2; zh-Hans-CN; ONEPLUS A5010 Build/NJH47F) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.108 Quark/2.4.2.986 Mobile Safari/537.36" -L "http://pan.baidu.com/api/list?dir="$encoded_path"&num=20&order=time&desc=1&clienttype=0&showempty=0&web=1&page="$2"&channel=chunlei&web=1&app_id=250528")")"
+if [[ "$(echo "$original_all_file_message"|grep "\"list\":\[\],")" != "" ]];then
+page_unexist=1
+elif [[ "$(echo "$original_all_file_message"|grep "\"errno\":-6")" != "" ]];then
+unlogined=1
+else all_file_message="$(echo "$original_all_file_message"|sed 's/:\[{/\n/g'|grep -v guid_info|sed 's/\"},{/\n/g'|sed 's/},{/\n/g'|sed 's/}\],\"/,\"/g')";fi
 }
 
 get_file_info(){
-if [[ $1 != "" ]];then
-export page_now="$1"
-else export page_now=1;fi
-if [[ $manypage == false ]];then
-export list_page_now=$(echo "$list"|grep '/')
-else export list_page_now=$(eval echo \"\$list_page$1\"|grep '/');fi
-export file_number_now=$(echo "$list_page_now"|sed -n '$=')
+export file_number_now=$(echo "$all_file_message"|sed -n '$=')
 export time=1
 while [[ $file_number_now != ""  ]];do
-export file"$time"_now="$(echo "$list_page_now"|sed -n "$time"p)"
-if [[ $(eval echo "\$file"$time"_now"|cut -d" " -f1) == d ]];then
+export file"$time"_now="$(echo "$all_file_message"|sed -n "$time"p)"
+if [[ $(eval echo "\$file"$time"_now"|grep "\"isdir\":1") != "" ]];then
 export file"$time"_type_now=directory
 else export file"$time"_type_now=file;fi
-export file"$time"_name="$(eval echo "\$file"$time"_now"|sed -e 's/\(.*\)\///')"
-export file"$time"_size="$(("$(eval echo "\$file"$time"_now"|cut -d" " -f2)" / 1048576 ))M"
+export file"$time"_name="$(eval echo "\$file"$time"_now"|sed "s/\",/\n/g"|sed 's/,\"/\n/g'|grep "server_filename\""|sed 's/server_filename\":\"//g')"
+export file"$time"_size="$(("$(eval echo "\$file"$time"_now"|tr "," "\n"|grep "\"size\""|sed 's/\"size\"://g')" / 1048576 ))M"
 ((time =time +1))
 if [[ $time -gt $file_number_now ]];then break;fi
 done
 }
 
+
 check_rpc_connection(){
-connection="$(curl -s -m 2 "$1" -d '{"jsonrpc": "2.0","id":-666755676,"method":"aria2.getVersion","params":[]}')"
+connection="$(curl -s -m 2 "$1" -d "{\"jsonrpc\": \"2.0\",\"id\":-666755676,\"method\":\"aria2.getVersion\",\"params\":[\"token:$2\"]}")"
 if [[ "$(echo "$connection"|grep version)" != "" ]];then
 rpc_connection=true
 else rpc_connection=false;fi
@@ -216,10 +355,10 @@ echo "$path_encoded"|tr -d "\n"
 add_misson(){
 file_path="$(urlencode "$1")"
 if [[ "$enable_http" == false ]];then
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$file_path" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$file_path" -A "netdisk;7.8.1;Red;android-android;4.3" -b $HOME/.netdisk/logined.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/ /g;s/"[}],[{]"url":"/ /g;s/"[}]\],".*/"/g;s/ /\n/g'|grep -v 'http://'|tr "\n" " "|sed 's/themis https/themis","https/g;s/ /"/g')"
 else
-geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$file_path" -A "netdisk;7.8.1;Red;android-android;4.3" -b /data/data/io.neoterm/files/home/.pcs/default.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
-result=$(curl "$2" -s -d "{\"jsonrpc\": \"2.0\",\"id\":853416378,\"method\":\"aria2.addUri\",\"params\":[["$geted_url"],{}]}")
+geted_url="$(curl -s "http://d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&app_id=250528&ver=2.0&dtype=0&esl=1&ehps=0&check_blue=1&clienttype=1&path=$file_path" -A "netdisk;7.8.1;Red;android-android;4.3" -b $HOME/.netdisk/logined.cookie "$proxy_ip"|sed 's/.*\[[{]"url":"/"/g;s/"[}],[{]"url":"/","/g;s/"[}]\],".*/"/g;s/ /\n/g')";fi
+result=$(curl "$2" -s -d "{\"jsonrpc\": \"2.0\",\"id\":853416378,\"method\":\"aria2.addUri\",\"params\":[\"token:$3\",["$geted_url"],{}]}")
 if [[ $(echo "$result"|grep error) == "" && $(echo "$result"|grep result) != "" ]];then
 display midle succeed -
 else display midle failed -;fi
@@ -234,7 +373,7 @@ export time=1
 export rpc_number=1
 while true;do
 if [[ "$(eval echo "\$rpc$time")" != "" && "$(eval echo "\$rpc"$time"_name")" != "" ]];then
-check_rpc_connection "$(eval echo \$rpc$time)"
+check_rpc_connection "$(eval echo \$rpc$time)" "$(eval echo \$rpc"$time"_token)"
 if [[ "$rpc_connection" != false ]];then
 export rpc"$time"_position=$number
 display side "$rpc_number $(eval echo \$rpc"$time"_name)" "$(eval echo \$rpc$time)  online" " " green_word
@@ -246,12 +385,12 @@ if [[ $time -gt 4 ]];then break;fi;done
 read command
 if [[ $command != "" ]];then
 if [[ $(eval echo \$given_rpc$command) != "" ]];then
-add_misson "$1" "$(eval echo \$given_rpc$command)";fi;fi
+add_misson "$1" "$(eval echo \$given_rpc$command)" "$(eval echo \$rpc"$command"_token)";fi;fi
 fi
 }
 
 
-if [[ $1 != settings ]];then
+if [[ $1 != settings && $1 != login ]];then
 
 if [[ $1 == "" ]];then
 path_wanted="/"
@@ -259,10 +398,18 @@ else path_wanted="$1";fi
 if [[ $2 == "" ]];then
 export page_wanted="1"
 else page_wanted="$2";fi
-get_all_file_list "$path_wanted"
-if [[ $manypage == true ]];then
-get_file_info "$page_wanted"
-else get_file_info;fi
+get_all_file_list "$path_wanted" "$page_wanted"
+if [[ $unlogined == 1 ]];then
+display midle "You are not logined yet." -
+display midle "Use command \"netdisk login\" to login." -;exit;fi
+if [[ "$page_unexist" == 1 ]];then
+display midle "That is not available" -
+if [[ "$page_now" != "" ]];then
+display midle "Going back to page $page_last" -
+get_all_file_list "$path_wanted" "$page_last"
+else display midle "Going back to page 1" -
+get_all_file_list "$path_wanted" 1;fi;fi
+get_file_info 
 stat "$directory_path"
 export time=1
 while [[ $file_number_now != ""  ]];do
@@ -273,7 +420,7 @@ else display_1 "$time $(eval echo "\$file"$time"_size") $(eval echo \$file"$time
 if [[ $time -gt $file_number_now ]];then break;fi
 done
 display midle - - 
-display midle "|tips: | u:↑| d:↓| b:←| x:exit | s:settings | r:remote_download |" " "
+display midle "|tips: | u:↑| d:↓| b:←| x:exit | h:help|" " "
 display midle - - 
 read command
 if [[ $command -gt 0 && $command -le $file_number_now ]];then
@@ -286,9 +433,7 @@ if [[ $directory_path != "/" ]];then
 get_file_link "$directory_path/$(eval echo "\$file"$command"_name")"
 else get_file_link "$directory_path$(eval echo "\$file"$command"_name")";fi;netdisk "$directory_path" "$page_now";fi
 elif [[ $command == "d" ]];then
-if [[ $page_now -lt "$total_page" ]];then
 ((page_toward = page_now + 1))
-else page_toward=1;fi
 netdisk "$directory_path" "$page_toward"
 elif [[ $command == "u" ]];then
 if [[ $page_now -gt 1 ]];then
@@ -300,6 +445,12 @@ if [[ $directory_path != "/" ]];then
 directory_toward="$(echo "$directory_path"|sed 's/\(.*\)\//\1\t/;s/\t.*//g')"
 netdisk "$directory_toward"
 else netdisk "$directory_path";fi
+elif [[ $command == "g" ]];then
+display midle "enter the page you want to go" -
+read command
+if [[ $command != "" && $command -gt 1 ]];then
+netdisk "$directory_path" "$command"
+else netdisk "$directory_path" "$page_now";fi
 elif [[ $command == "r" ]];then
 display midle "enter address/magnet" -
 read address
@@ -309,19 +460,29 @@ elif [[ $command == "s" ]];then
 netdisk settings
 elif [[ $command == "x" ]];then $clear
 display midle "Exited" -;exit
+elif [[ $command == "h" ]];then
+display midle "Help" -
+display midle "  d: Go page down " -
+display midle "  u: Go page up " -
+display midle "  b: Go parent path" -
+display midle "  g: Go specified page" -
+display midle "  r: Remote download " -
+display midle "  s: Settings Page" -
+read command
+netdisk "$directory_path" "$page_now"
 else netdisk "$directory_path" "$page_now";fi
 
-else 
+elif [[ $1 == settings ]];then  
 clear
 display midle - -
 display midle settings -
 display midle - -
 display side "1: Proxy_Ip" "$proxy_ip" " "
 display side "2: Enable_Http" "$enable_http" " "
-display side "3: rpc1: $rpc1_name" "$rpc1" " "
-display side "4: rpc2: $rpc2_name" "$rpc2" " "
-display side "5: rpc3: $rpc3_name" "$rpc3" " "
-display side "6: rpc4: $rpc4_name" "$rpc4" " "
+display side "3: rpc1: $rpc1_name" "$rpc1_token $rpc1" " "
+display side "4: rpc2: $rpc2_name" "$rpc2_token $rpc2" " "
+display side "5: rpc3: $rpc3_name" "$rpc3_token $rpc3" " "
+display side "6: rpc4: $rpc4_name" "$rpc4_token $rpc4" " "
 display midle - -
 display midle "|tips: | b:←| x:exit |" " "
 display midle - -
@@ -340,14 +501,37 @@ display midle "enter a name" -
 read rpcname
 display midle "enter rpc address" -
 read rpc
+display midle "enter secret token" -
+read token
 if [[ "$rpcname" != "" && $rpc != "" ]];then
 write_conf "rpc$((command - 2))" "$rpc"
-write_conf "rpc"$((command - 2))"_name" "$rpcname";fi;netdisk settings
+write_conf "rpc"$((command - 2))"_name" "$rpcname"
+write_conf "rpc"$((command - 2))"_token" "$token";fi;netdisk settings
 elif [[ $command == b ]];then
 netdisk
 elif [[ $command == x ]];then
 clear;display midle Exited -;exit
 else netdisk settings;fi
+
+elif [[ $1 == login ]];then
+display midle "Enter your username" -
+read USERNAME
+if [[ $USERNAME == "" ]];then
+display midle "Login gave up" -;exit;fi
+display midle "Enter your password" -
+read -s PASSWORD
+if [[ $PASSWORD == "" ]];then
+display midle "Login gave up" -;exit;fi
+get_baiduid
+if [[ "$?" == 1 ]];then
+display midle  'Failed to get baiduid' -;exit;fi
+get_token
+if [[ "$?" == 1 ]];then
+display midle  'Failed to get token' -;exit;fi
+
+get_login_history
+check_login
+start_login
 fi
 
 

@@ -18,6 +18,7 @@
 
 #只可用于Neoterm(酷安里可搜索到)，其他任何平台均不可使用
 
+#Aria2的UA需要设置成 netdisk;7.8.1;Red;android-android;4.3
 
 ```SHELL
 apt install wget -y

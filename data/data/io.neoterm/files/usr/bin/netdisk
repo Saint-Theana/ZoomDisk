@@ -448,14 +448,50 @@ else netdisk "$directory_path";fi
 elif [[ $command == "g" ]];then
 display midle "enter the page you want to go" -
 read command
-if [[ $command != "" && $command -gt 1 ]];then
+if [[ $command != "" && $command -ge 1 ]];then
 netdisk "$directory_path" "$command"
 else netdisk "$directory_path" "$page_now";fi
+elif [[ $command == "D" ]];then
+display midle "Downloading all file in this page" -
+display midle "Are you sure you wanna do this?" -
+display midle "Type yes to continue" -
+read command
+if [[ $command == yes ]];then
+if [[ $rpc1 == "" && $rpc2 == "" && $rpc3 == "" && $rpc4 == "" ]];then
+display midle "you do not have any rpc address" -
+else
+display midle "choose a rpc to add mission" -
+export time=1
+export rpc_number=1
+while true;do
+if [[ "$(eval echo "\$rpc$time")" != "" && "$(eval echo "\$rpc"$time"_name")" != "" ]];then
+check_rpc_connection "$(eval echo \$rpc$time)" "$(eval echo \$rpc"$time"_token)"
+if [[ "$rpc_connection" != false ]];then
+export rpc"$time"_position=$number
+display side "$rpc_number $(eval echo \$rpc"$time"_name)" "$(eval echo \$rpc$time)  online" " " green_word
+else display side "$rpc_number $(eval echo \$rpc"$time"_name)" "$(eval echo \$rpc$time)  offline" " " blue_word;fi
+export given_rpc"$rpc_number"=$(eval echo "\$rpc$rpc_number")
+((rpc_number = rpc_number + 1));fi
+((time=time+1))
+if [[ $time -gt 4 ]];then break;fi;done
+read command
+if [[ $command != "" && $command -gt 0 && $command -le 4 ]];then
+rpc_chosen="$(eval echo \$given_rpc$command)"
+rpc_chosen_token="$(eval echo \$rpc"$command"_token)";fi;fi
+export time=1
+while [[ $file_number_now != ""  ]];do
+if [[ "$(eval echo "\$file"$time"_type_now")" == file ]];then
+if [[ $directory_path != "/" ]];then
+add_misson "$directory_path/$(eval echo "\$file"$time"_name")" "$rpc_chosen" "$rpc_chosen_token"
+else add_misson "$directory_path$(eval echo "\$file"$time"_name")" "$rpc_chosen" "$rpc_chosen_token";fi;fi
+((time =time +1))
+sleep 1
+if [[ $time -gt $file_number_now ]];then break;fi;done;netdisk "$directory_path" "$page_now";else netdisk "$directory_path" "$page_now";fi
 elif [[ $command == "r" ]];then
 display midle "enter address/magnet" -
 read address
 if [[ $address != '' ]];then
-remote_download "$address";fi;netdisk "$directory_path" "$page_now"
+remote_download "$address";fi;netdisk "$directory_parth" "$page_now"
 elif [[ $command == "s" ]];then
 netdisk settings
 elif [[ $command == "x" ]];then $clear
@@ -468,6 +504,8 @@ display midle "  b: Go parent path" -
 display midle "  g: Go specified page" -
 display midle "  r: Remote download " -
 display midle "  s: Settings Page" -
+display midle "  D: Dowload all files at the page" -
+display midle "Enter annything to close help page" -
 read command
 netdisk "$directory_path" "$page_now"
 else netdisk "$directory_path" "$page_now";fi
